@@ -32,6 +32,4 @@ win:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  installerLanguages:
-    - es_MX
   language: 3082
