@@ -10,10 +10,18 @@ import type {
 } from '../src/types'
 import type { SerialConfig, AvailablePort } from './serial/serial.types'
 
+export interface DbConfigPayload {
+  host:     string
+  port:     number
+  database: string
+  user:     string
+  password: string
+}
+
 const api = {
   weighings: {
     capture: (p: CaptureWeightPayload):    Promise<IpcResponse<unknown>> => ipcRenderer.invoke('weighings:capture', p),
-    getMany:  (p: GetWeighingsPayload):     Promise<IpcResponse<unknown>> => ipcRenderer.invoke('weighings:getMany', p),
+    getMany:  (p: GetWeighingsPayload):    Promise<IpcResponse<unknown>> => ipcRenderer.invoke('weighings:getMany', p),
     delete:   (p: { id: number }):         Promise<IpcResponse<unknown>> => ipcRenderer.invoke('weighings:delete', p),
   },
   sessions: {
@@ -28,27 +36,28 @@ const api = {
     getAll: (): Promise<IpcResponse<unknown>> => ipcRenderer.invoke('warehouses:getAll'),
   },
   settings: {
-    getAll:            ():                       Promise<IpcResponse<unknown>> => ipcRenderer.invoke('settings:getAll'),
-    save:              (p: SettingsMap):         Promise<IpcResponse<unknown>> => ipcRenderer.invoke('settings:save', p),
-    connectFromSaved:  ():                       Promise<IpcResponse<unknown>> => ipcRenderer.invoke('serial:connectFromSettings'),
+    getAll:           ():               Promise<IpcResponse<unknown>> => ipcRenderer.invoke('settings:getAll'),
+    save:             (p: SettingsMap): Promise<IpcResponse<unknown>> => ipcRenderer.invoke('settings:save', p),
+    connectFromSaved: ():               Promise<IpcResponse<unknown>> => ipcRenderer.invoke('serial:connectFromSettings'),
   },
   serial: {
-    listPorts:      ():                     Promise<IpcResponse<AvailablePort[]>> => ipcRenderer.invoke('serial:listPorts'),
-    connect:        (p: SerialConfig):      Promise<IpcResponse<unknown>>        => ipcRenderer.invoke('serial:connect', p),
-    disconnect:     ():                     Promise<IpcResponse<unknown>>        => ipcRenderer.invoke('serial:disconnect'),
-    testConnection: (p: SerialConfig):      Promise<IpcResponse<unknown>>        => ipcRenderer.invoke('serial:testConnection', p),
+    listPorts:      ():                Promise<IpcResponse<AvailablePort[]>> => ipcRenderer.invoke('serial:listPorts'),
+    connect:        (p: SerialConfig): Promise<IpcResponse<unknown>>         => ipcRenderer.invoke('serial:connect', p),
+    disconnect:     ():                Promise<IpcResponse<unknown>>         => ipcRenderer.invoke('serial:disconnect'),
+    testConnection: (p: SerialConfig): Promise<IpcResponse<unknown>>         => ipcRenderer.invoke('serial:testConnection', p),
+  },
+  setup: {
+    testDb:  (p: DbConfigPayload): Promise<IpcResponse<unknown>> => ipcRenderer.invoke('setup:testDb', p),
+    saveDb:  (p: DbConfigPayload): Promise<IpcResponse<unknown>> => ipcRenderer.invoke('setup:saveDb', p),
+    getDb:   ():                   Promise<IpcResponse<unknown>> => ipcRenderer.invoke('setup:getDb'),
+    notifyDone: (): void => ipcRenderer.send('app:dbSetupDone'),
   },
 
   // Push events from main → renderer
-  onWeightUpdate: (cb: (w: ParsedWeight) => void): void => {
-    ipcRenderer.on('serial:weightUpdate', (_e, data) => cb(data))
-  },
-  onStatusChange: (cb: (s: SerialStatus) => void): void => {
-    ipcRenderer.on('serial:statusChange', (_e, data) => cb(data))
-  },
-  removeListener: (channel: string): void => {
-    ipcRenderer.removeAllListeners(channel)
-  },
+  onWeightUpdate:   (cb: (w: ParsedWeight) => void):  void => { ipcRenderer.on('serial:weightUpdate', (_e, data) => cb(data)) },
+  onStatusChange:   (cb: (s: SerialStatus) => void):  void => { ipcRenderer.on('serial:statusChange', (_e, data) => cb(data)) },
+  onDbSetupRequired:(cb: () => void):                 void => { ipcRenderer.once('app:dbSetupRequired', () => cb()) },
+  removeListener:   (channel: string):                void => { ipcRenderer.removeAllListeners(channel) },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

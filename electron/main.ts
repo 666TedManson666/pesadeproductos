@@ -1,8 +1,7 @@
-import 'dotenv/config'
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, ipcMain } from 'electron'
 import path from 'path'
 import { runMigrations } from './database/migrations'
-import { closePool } from './database/connection'
+import { closePool, testConnection } from './database/connection'
 import { getAllSettings } from './repositories/settings.repository'
 import { settingsToConfig } from './ipc/settings.ipc'
 import { serialManager } from './serial/serial.manager'
@@ -14,17 +13,17 @@ let mainWindow: BrowserWindow | null = null
 
 async function createWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width:    1280,
+    height:   800,
     minWidth: 1024,
     minHeight: 680,
-    title: 'PesaDeProductos',
+    title:    'PesaDeProductos',
     backgroundColor: '#111827',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload:         path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
+      nodeIntegration:  false,
+      sandbox:          false,
     },
   })
 
@@ -45,21 +44,47 @@ async function createWindow(): Promise<void> {
   serialManager.setWindow(mainWindow)
 }
 
-async function init(): Promise<void> {
-  await runMigrations()
+async function tryRunMigrations(): Promise<boolean> {
+  try {
+    await runMigrations()
+    return true
+  } catch (err) {
+    console.error('[Main] DB not available:', (err as Error).message)
+    return false
+  }
+}
 
-  registerAllHandlers()
-
-  await createWindow()
-
-  // Auto-connect to serial port using saved settings
+async function connectSerial(): Promise<void> {
   try {
     const settings = await getAllSettings()
-    const config = settingsToConfig(settings)
+    const config   = settingsToConfig(settings)
     await serialManager.connect(config)
   } catch {
     console.log('[Main] No serial port auto-connected (will retry when settings are saved)')
   }
+}
+
+async function init(): Promise<void> {
+  registerAllHandlers()
+  await createWindow()
+
+  // Try to connect to DB — if it fails, notify renderer to show setup screen
+  const ok = await tryRunMigrations()
+
+  if (!ok) {
+    // Wait for renderer to be ready then send the event
+    mainWindow?.webContents.once('did-finish-load', () => {
+      mainWindow?.webContents.send('app:dbSetupRequired')
+    })
+
+    // Listen for setup completion from renderer to proceed with serial
+    ipcMain.once('app:dbSetupDone', async () => {
+      await connectSerial()
+    })
+    return
+  }
+
+  await connectSerial()
 }
 
 app.whenReady().then(init).catch(console.error)

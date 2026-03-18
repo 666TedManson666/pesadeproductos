@@ -1,17 +1,19 @@
 import { Pool } from 'pg'
+import { loadDbConfig } from './db.config'
 
 let pool: Pool | null = null
 
 export function getPool(): Pool {
   if (!pool) {
+    const cfg = loadDbConfig()
     pool = new Pool({
-      host: process.env.DB_HOST || 'localhost',
-      port: Number(process.env.DB_PORT) || 5432,
-      database: process.env.DB_NAME || 'pesadeproductos',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || '',
-      max: 10,
-      idleTimeoutMillis: 30000,
+      host:                    cfg.host,
+      port:                    cfg.port,
+      database:                cfg.database,
+      user:                    cfg.user,
+      password:                cfg.password,
+      max:                     10,
+      idleTimeoutMillis:       30000,
       connectionTimeoutMillis: 2000,
     })
 
@@ -20,6 +22,13 @@ export function getPool(): Pool {
     })
   }
   return pool
+}
+
+export async function resetPool(): Promise<void> {
+  if (pool) {
+    await pool.end().catch(() => {})
+    pool = null
+  }
 }
 
 export async function testConnection(): Promise<boolean> {

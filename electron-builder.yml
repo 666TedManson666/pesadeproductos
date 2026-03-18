@@ -10,6 +10,12 @@ files:
   - dist/**/*
   - dist-electron/**/*
 
+extraResources:
+  - from: electron/database/schema.sql
+    to: electron/database/schema.sql
+  - from: electron/database/seed.sql
+    to: electron/database/seed.sql
+
 asarUnpack:
   - "node_modules/serialport/**/*"
   - "node_modules/@serialport/**/*"

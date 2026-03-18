@@ -10,6 +10,14 @@ import type {
   SerialConfig,
 } from './index'
 
+export interface DbConfigPayload {
+  host:     string
+  port:     number
+  database: string
+  user:     string
+  password: string
+}
+
 declare global {
   interface Window {
     electronAPI: {
@@ -40,9 +48,16 @@ declare global {
         disconnect:     ()                  => Promise<IpcResponse>
         testConnection: (p: SerialConfig)   => Promise<IpcResponse>
       }
-      onWeightUpdate:  (cb: (w: ParsedWeight) => void) => void
-      onStatusChange:  (cb: (s: SerialStatus) => void) => void
-      removeListener:  (channel: string)                => void
+      setup: {
+        testDb:     (p: DbConfigPayload) => Promise<IpcResponse>
+        saveDb:     (p: DbConfigPayload) => Promise<IpcResponse>
+        getDb:      ()                   => Promise<IpcResponse>
+        notifyDone: ()                   => void
+      }
+      onWeightUpdate:    (cb: (w: ParsedWeight) => void) => void
+      onStatusChange:    (cb: (s: SerialStatus) => void) => void
+      onDbSetupRequired: (cb: () => void)                => void
+      removeListener:    (channel: string)               => void
     }
   }
 }
