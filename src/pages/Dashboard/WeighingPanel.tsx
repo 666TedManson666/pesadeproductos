@@ -18,8 +18,9 @@ export function WeighingPanel() {
   const [capturing, setCapturing] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [manualInput, setManualInput] = useState('')
 
-  const { weight, stable, rawData } = useScaleStore()
+  const { weight, stable, rawData, status, setWeight } = useScaleStore()
   const { unit } = useSettingsStore((s) => s.serialConfig)
 
   const {
@@ -90,7 +91,14 @@ export function WeighingPanel() {
     setTimeout(() => setNotification(null), 2000)
   }
 
-  useKeyboardShortcut(['Enter', 'F5'], handleCapture, canCapture && !capturing)
+  function handleManualWeight() {
+    const val = parseFloat(manualInput.replace(',', '.'))
+    if (isNaN(val) || val <= 0) return
+    setWeight({ value: val, raw: `${val} KG G (manual)`, stable: true })
+    setManualInput('')
+  }
+
+  useKeyboardShortcut(['F5'], handleCapture, canCapture && !capturing)
 
   return (
     <div className="flex flex-col gap-5">
@@ -100,10 +108,46 @@ export function WeighingPanel() {
       {/* Weight display */}
       <WeightDisplay weight={weight} stable={stable} unit={unit} />
 
+      {/* Manual weight input — visible only when scale is not connected */}
+      {!status.connected && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest text-center">
+            ⚠ Báscula no conectada — Peso manual (pruebas)
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              min="0"
+              step="0.001"
+              placeholder="Ej: 15.500"
+              value={manualInput}
+              onChange={(e) => setManualInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleManualWeight()}
+              className="flex-1 bg-gray-800 border border-amber-600/50 rounded-lg px-3 py-2 text-white
+                         font-mono text-lg text-center focus:outline-none focus:border-amber-400
+                         placeholder:text-gray-600 [appearance:textfield]
+                         [&::-webkit-outer-spin-button]:appearance-none
+                         [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <button
+              onClick={handleManualWeight}
+              disabled={!manualInput || isNaN(parseFloat(manualInput))}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-700
+                         disabled:text-gray-500 text-white font-bold rounded-lg
+                         transition-colors duration-150 text-lg"
+            >
+              ✓
+            </button>
+          </div>
+          <p className="text-xs text-gray-600 text-center">
+            Escribe el peso y presiona <kbd className="px-1 bg-gray-800 border border-gray-600 rounded text-gray-500 font-mono">Enter</kbd> o <span className="text-amber-500">✓</span>
+          </p>
+        </div>
+      )}
+
       {/* Keyboard hint */}
       <p className="text-center text-xs text-gray-600">
-        Presiona <kbd className="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-gray-400 font-mono text-xs">Enter</kbd>
-        {' '}o{' '}
+        Presiona{' '}
         <kbd className="px-1.5 py-0.5 bg-gray-800 border border-gray-600 rounded text-gray-400 font-mono text-xs">F5</kbd>
         {' '}para capturar
       </p>
