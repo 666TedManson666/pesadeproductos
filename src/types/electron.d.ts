@@ -31,12 +31,8 @@ declare global {
         close:     (p: { sessionId: number }) => Promise<IpcResponse>
         getActive: ()                          => Promise<IpcResponse>
       }
-      products: {
-        getAll: () => Promise<IpcResponse>
-      }
-      warehouses: {
-        getAll: () => Promise<IpcResponse>
-      }
+      products:  { getAll: () => Promise<IpcResponse> }
+      warehouses:{ getAll: () => Promise<IpcResponse> }
       settings: {
         getAll:           ()                => Promise<IpcResponse>
         save:             (p: SettingsMap)  => Promise<IpcResponse>
@@ -48,16 +44,18 @@ declare global {
         disconnect:     ()                  => Promise<IpcResponse>
         testConnection: (p: SerialConfig)   => Promise<IpcResponse>
       }
+      app: {
+        getStatus: () => Promise<{ dbReady: boolean }>
+      }
       setup: {
         testDb:     (p: DbConfigPayload) => Promise<IpcResponse>
         saveDb:     (p: DbConfigPayload) => Promise<IpcResponse>
         getDb:      ()                   => Promise<IpcResponse>
         notifyDone: ()                   => void
       }
-      onWeightUpdate:    (cb: (w: ParsedWeight) => void) => void
-      onStatusChange:    (cb: (s: SerialStatus) => void) => void
-      onDbSetupRequired: (cb: () => void)                => void
-      removeListener:    (channel: string)               => void
+      onWeightUpdate: (cb: (w: ParsedWeight) => void) => void
+      onStatusChange: (cb: (s: SerialStatus) => void) => void
+      removeListener: (channel: string)               => void
     }
   }
 }

@@ -10,12 +10,13 @@ export interface DbConfig {
   password: string
 }
 
+// Base defaults — can be overridden by userData JSON or process.env (dev fallback)
 const DEFAULT_CONFIG: DbConfig = {
-  host:     'localhost',
-  port:     5432,
-  database: 'pesadeproductos',
-  user:     'postgres',
-  password: '',
+  host:     process.env.DB_HOST     || 'localhost',
+  port:     Number(process.env.DB_PORT) || 5432,
+  database: process.env.DB_NAME     || 'pesadeproductos',
+  user:     process.env.DB_USER     || 'postgres',
+  password: process.env.DB_PASSWORD || '',
 }
 
 function getConfigPath(): string {
@@ -25,8 +26,10 @@ function getConfigPath(): string {
 export function loadDbConfig(): DbConfig {
   try {
     const raw = fs.readFileSync(getConfigPath(), 'utf-8')
-    return { ...DEFAULT_CONFIG, ...JSON.parse(raw) }
+    const saved = JSON.parse(raw) as Partial<DbConfig>
+    return { ...DEFAULT_CONFIG, ...saved }
   } catch {
+    // No saved config — use defaults (which include .env values in dev)
     return { ...DEFAULT_CONFIG }
   }
 }
@@ -38,10 +41,6 @@ export function saveDbConfig(cfg: Partial<DbConfig>): void {
 }
 
 export function hasDbConfig(): boolean {
-  try {
-    const cfg = loadDbConfig()
-    return cfg.password.trim().length > 0
-  } catch {
-    return false
-  }
+  const cfg = loadDbConfig()
+  return cfg.password.trim().length > 0
 }

@@ -1,14 +1,16 @@
-import { PageHeader }     from '../../components/Layout/PageHeader'
+import { PageHeader }  from '../../components/Layout/PageHeader'
 import { SerialSettings } from './SerialSettings'
+import { DbSettings }    from './DbSettings'
 
 export default function Settings() {
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Configuración"
-        subtitle="Configura el puerto serial y el protocolo de la pesa"
+        subtitle="Configura el puerto serial, protocolo de la pesa y la base de datos"
       />
       <SerialSettings />
+      <DbSettings />
     </div>
   )
 }

@@ -1,7 +1,8 @@
+import 'dotenv/config'
 import { app, BrowserWindow, shell, ipcMain } from 'electron'
 import path from 'path'
 import { runMigrations } from './database/migrations'
-import { closePool, testConnection } from './database/connection'
+import { closePool } from './database/connection'
 import { getAllSettings } from './repositories/settings.repository'
 import { settingsToConfig } from './ipc/settings.ipc'
 import { serialManager } from './serial/serial.manager'
@@ -10,17 +11,18 @@ import { registerAllHandlers } from './ipc/index'
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
 let mainWindow: BrowserWindow | null = null
+let dbReady = false   // renderer pulls this via IPC on mount
 
 async function createWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
-    width:    1280,
-    height:   800,
-    minWidth: 1024,
+    width:     1280,
+    height:    800,
+    minWidth:  1024,
     minHeight: 680,
-    title:    'PesaDeProductos',
+    title:     'PesaDeProductos',
     backgroundColor: '#111827',
     webPreferences: {
-      preload:         path.join(__dirname, 'preload.js'),
+      preload:          path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration:  false,
       sandbox:          false,
@@ -65,26 +67,28 @@ async function connectSerial(): Promise<void> {
 }
 
 async function init(): Promise<void> {
+  // 1. Register all IPC handlers (must be before any IPC calls)
   registerAllHandlers()
+
+  // 2. Register the status handler so renderer can pull on mount
+  ipcMain.handle('app:getStatus', () => ({ dbReady }))
+
+  // 3. Try DB before creating window (avoids race condition with did-finish-load)
+  dbReady = await tryRunMigrations()
+
+  // 4. Create and show the window — renderer will call app:getStatus on mount
   await createWindow()
 
-  // Try to connect to DB — if it fails, notify renderer to show setup screen
-  const ok = await tryRunMigrations()
-
-  if (!ok) {
-    // Wait for renderer to be ready then send the event
-    mainWindow?.webContents.once('did-finish-load', () => {
-      mainWindow?.webContents.send('app:dbSetupRequired')
-    })
-
-    // Listen for setup completion from renderer to proceed with serial
+  // 5. If DB is ready, connect serial. Otherwise wait for renderer to finish setup.
+  if (dbReady) {
+    await connectSerial()
+  } else {
+    // Listen for setup completion signal from renderer
     ipcMain.once('app:dbSetupDone', async () => {
+      dbReady = true
       await connectSerial()
     })
-    return
   }
-
-  await connectSerial()
 }
 
 app.whenReady().then(init).catch(console.error)
