@@ -10,8 +10,15 @@ export function useSerialStatus(): void {
   const setStatus = useScaleStore((s) => s.setStatus)
 
   useEffect(() => {
-    const handler = (s: SerialStatus) => setStatus(s)
+    console.log('[HOOK-DEBUG] useSerialStatus: montando, registrando onStatusChange')
+    const handler = (s: SerialStatus) => {
+      console.log('[HOOK-DEBUG] Status serial recibido:', JSON.stringify(s))
+      setStatus(s)
+    }
     window.electronAPI.onStatusChange(handler)
-    return () => window.electronAPI.removeListener('serial:statusChange')
+    return () => {
+      console.log('[HOOK-DEBUG] useSerialStatus: desmontando')
+      window.electronAPI.removeListener('serial:statusChange')
+    }
   }, [setStatus])
 }

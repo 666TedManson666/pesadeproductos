@@ -11,8 +11,15 @@ export function useScaleWeight(): void {
   const setWeight = useScaleStore((s) => s.setWeight)
 
   useEffect(() => {
-    const handler = (w: ParsedWeight) => setWeight(w)
+    console.log('[HOOK-DEBUG] useScaleWeight: montando, registrando onWeightUpdate')
+    const handler = (w: ParsedWeight) => {
+      console.log('[HOOK-DEBUG] Peso recibido en hook:', JSON.stringify(w))
+      setWeight(w)
+    }
     window.electronAPI.onWeightUpdate(handler)
-    return () => window.electronAPI.removeListener('serial:weightUpdate')
+    return () => {
+      console.log('[HOOK-DEBUG] useScaleWeight: desmontando, removiendo listeners')
+      window.electronAPI.removeListener('serial:weightUpdate')
+    }
   }, [setWeight])
 }

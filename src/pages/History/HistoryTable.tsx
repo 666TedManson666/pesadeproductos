@@ -24,7 +24,7 @@ const columns = [
   )},
   { key: 'weightKg',      header: 'Peso (kg)', align: 'right' as const,
     render: (r: Weighing) => (
-      <span className="font-mono font-semibold text-green-400">{Number(r.weightKg).toFixed(3)}</span>
+      <span className="font-mono font-semibold text-green-400">{Number(r.weightKg).toFixed(2)}</span>
     )},
   { key: 'mode', header: 'Modo', render: (r: Weighing) => (
     <span className={`text-xs font-medium ${r.mode === 'SESSION' ? 'text-blue-400' : 'text-gray-400'}`}>
@@ -44,13 +44,13 @@ export function HistoryTable({ rows, total, summary }: HistoryTableProps) {
           {summary.map((s) => (
             <div key={s.productId} className="bg-gray-900 rounded-xl border border-gray-800 p-3">
               <p className="text-xs text-gray-500 truncate" title={s.productName}>{s.productName}</p>
-              <p className="text-lg font-mono font-bold text-white mt-1">{Number(s.totalKg).toFixed(1)}</p>
+              <p className="text-lg font-mono font-bold text-white mt-1">{Number(s.totalKg).toFixed(2)}</p>
               <p className="text-xs text-gray-500">kg — {s.count} pesajes</p>
             </div>
           ))}
           <div className="bg-brand-900/30 rounded-xl border border-brand-700/50 p-3">
             <p className="text-xs text-brand-400">TOTAL GENERAL</p>
-            <p className="text-lg font-mono font-bold text-white mt-1">{grandTotal.toFixed(1)}</p>
+            <p className="text-lg font-mono font-bold text-white mt-1">{grandTotal.toFixed(2)}</p>
             <p className="text-xs text-brand-400">{total} registros</p>
           </div>
         </div>

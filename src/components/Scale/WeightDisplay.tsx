@@ -5,7 +5,7 @@ interface WeightDisplayProps {
 }
 
 export function WeightDisplay({ weight, stable, unit = 'kg' }: WeightDisplayProps) {
-  const display = weight !== null ? weight.toFixed(3) : '---.-'
+  const display = weight !== null ? weight.toFixed(2).padStart(8, '0') : '-----.--'
 
   const colorClass = weight === null
     ? 'text-gray-600'

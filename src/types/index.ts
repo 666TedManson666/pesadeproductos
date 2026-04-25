@@ -117,3 +117,24 @@ export interface SerialConfig {
   weightRegex: string
   unit:        'kg' | 'lb'
 }
+
+// ─── Mantenimiento / Diagnóstico ──────────────────────────────────────────────
+
+export type MaintenancePhase =
+  | 'CONEXION'
+  | 'BYTES_CRUDOS'
+  | 'LINEA'
+  | 'REGEX'
+  | 'ESTABILIDAD'
+  | 'IPC'
+  | 'PANTALLA'
+
+export type MaintenanceStatus = 'ok' | 'error' | 'warn' | 'idle'
+
+export interface MaintenanceEvent {
+  phase:   MaintenancePhase
+  status:  MaintenanceStatus
+  message: string
+  detail?: string
+  ts:      number
+}

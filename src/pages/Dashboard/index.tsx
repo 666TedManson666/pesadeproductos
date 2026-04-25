@@ -10,7 +10,7 @@ export default function Dashboard() {
         subtitle="Captura el peso de los productos cargados al camión"
       />
 
-      <div className="flex-1 grid grid-cols-[360px_1fr] gap-6 min-h-0">
+      <div className="flex-1 grid grid-cols-[440px_1fr] gap-6 min-h-0">
         {/* Left: controls */}
         <div className="overflow-y-auto">
           <WeighingPanel />

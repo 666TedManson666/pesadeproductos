@@ -18,9 +18,9 @@ export function WeighingPanel() {
   const [capturing, setCapturing] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [manualInput, setManualInput] = useState('')
+  const [reading, setReading] = useState(false)
 
-  const { weight, stable, rawData, status, setWeight } = useScaleStore()
+  const { weight, stable, rawData, status } = useScaleStore()
   const { unit } = useSettingsStore((s) => s.serialConfig)
 
   const {
@@ -91,11 +91,10 @@ export function WeighingPanel() {
     setTimeout(() => setNotification(null), 2000)
   }
 
-  function handleManualWeight() {
-    const val = parseFloat(manualInput.replace(',', '.'))
-    if (isNaN(val) || val <= 0) return
-    setWeight({ value: val, raw: `${val} KG G (manual)`, stable: true })
-    setManualInput('')
+  async function handleReadNow() {
+    setReading(true)
+    await window.electronAPI.serial.readNow()
+    setTimeout(() => setReading(false), 800)
   }
 
   useKeyboardShortcut(['F5'], handleCapture, canCapture && !capturing)
@@ -108,42 +107,28 @@ export function WeighingPanel() {
       {/* Weight display */}
       <WeightDisplay weight={weight} stable={stable} unit={unit} />
 
-      {/* Manual weight input — visible only when scale is not connected */}
-      {!status.connected && (
-        <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest text-center">
-            ⚠ Báscula no conectada — Peso manual (pruebas)
-          </p>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              min="0"
-              step="0.001"
-              placeholder="Ej: 15.500"
-              value={manualInput}
-              onChange={(e) => setManualInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleManualWeight()}
-              className="flex-1 bg-gray-800 border border-amber-600/50 rounded-lg px-3 py-2 text-white
-                         font-mono text-lg text-center focus:outline-none focus:border-amber-400
-                         placeholder:text-gray-600 [appearance:textfield]
-                         [&::-webkit-outer-spin-button]:appearance-none
-                         [&::-webkit-inner-spin-button]:appearance-none"
-            />
-            <button
-              onClick={handleManualWeight}
-              disabled={!manualInput || isNaN(parseFloat(manualInput))}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-700
-                         disabled:text-gray-500 text-white font-bold rounded-lg
-                         transition-colors duration-150 text-lg"
-            >
-              ✓
-            </button>
-          </div>
-          <p className="text-xs text-gray-600 text-center">
-            Escribe el peso y presiona <kbd className="px-1 bg-gray-800 border border-gray-600 rounded text-gray-500 font-mono">Enter</kbd> o <span className="text-amber-500">✓</span>
-          </p>
-        </div>
-      )}
+      {/* Read weight button */}
+      <button
+        onClick={handleReadNow}
+        disabled={reading}
+        className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border
+                    text-sm font-semibold transition-all duration-150
+                    ${status.connected
+                      ? 'border-brand-600/40 bg-brand-600/10 text-brand-400 hover:bg-brand-600/20'
+                      : 'border-amber-600/40 bg-amber-600/10 text-amber-400 hover:bg-amber-600/20'
+                    }
+                    disabled:opacity-50 disabled:cursor-not-allowed`}
+      >
+        <svg className={`w-4 h-4 ${reading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        {reading
+          ? 'Leyendo...'
+          : status.connected
+            ? 'Leer Peso'
+            : 'Reconectar y Leer'}
+      </button>
 
       {/* Keyboard hint */}
       <p className="text-center text-xs text-gray-600">

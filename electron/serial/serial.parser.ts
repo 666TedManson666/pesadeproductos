@@ -17,22 +17,28 @@ import type { ParsedWeight } from './serial.types'
 export function parseWeight(raw: string, regexStr: string): ParsedWeight {
   const trimmed = raw.trim()
 
+  console.log(`[PARSER-DEBUG] Entrada: "${trimmed}" | Regex: "${regexStr}"`)
+
   try {
     const regex = new RegExp(regexStr)
     const match = trimmed.match(regex)
 
     if (!match || match[1] === undefined) {
+      console.log(`[PARSER-DEBUG] ⚠️ Sin coincidencia con regex. match=${JSON.stringify(match)}`)
       return { raw: trimmed, value: null, stable: false }
     }
 
     const value = parseFloat(match[1])
     if (isNaN(value)) {
+      console.log(`[PARSER-DEBUG] ⚠️ parseFloat resultó NaN para match[1]="${match[1]}"`)
       return { raw: trimmed, value: null, stable: false }
     }
 
+    console.log(`[PARSER-DEBUG] ✓ Peso extraído: ${value} (de match[1]="${match[1]}")`)
     // stable is always false here; SerialManager sets it after debounce check
     return { raw: trimmed, value, stable: false }
-  } catch {
+  } catch (e) {
+    console.error(`[PARSER-DEBUG] ⚠️ ERROR con regex "${regexStr}":`, (e as Error).message)
     return { raw: trimmed, value: null, stable: false }
   }
 }

@@ -1,19 +1,27 @@
 import { useState, useEffect } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
-import { AppShell }  from './components/Layout/AppShell'
-import { SetupPage } from './pages/Setup/index'
-import Dashboard     from './pages/Dashboard/index'
-import History       from './pages/History/index'
-import Settings      from './pages/Settings/index'
+import { AppShell }    from './components/Layout/AppShell'
+import { SetupPage }   from './pages/Setup/index'
+import Dashboard       from './pages/Dashboard/index'
+import History         from './pages/History/index'
+import Settings        from './pages/Settings/index'
+import Maintenance     from './pages/Maintenance/index'
 
 export default function App() {
   // null = loading, false = needs setup, true = ready
   const [dbReady, setDbReady] = useState<boolean | null>(null)
 
   useEffect(() => {
+    console.log('[APP-DEBUG] App montada, llamando app:getStatus...')
     window.electronAPI.app.getStatus()
-      .then(({ dbReady }) => setDbReady(dbReady))
-      .catch(() => setDbReady(false))
+      .then(({ dbReady }) => {
+        console.log('[APP-DEBUG] app:getStatus respondió dbReady=' + dbReady)
+        setDbReady(dbReady)
+      })
+      .catch((err) => {
+        console.error('[APP-DEBUG] ⚠️ app:getStatus falló:', err)
+        setDbReady(false)
+      })
   }, [])
 
   // Loading splash while we wait for the IPC response
@@ -43,9 +51,10 @@ export default function App() {
     <HashRouter>
       <AppShell>
         <Routes>
-          <Route path="/"         element={<Dashboard />} />
-          <Route path="/history"  element={<History />}   />
-          <Route path="/settings" element={<Settings />}  />
+          <Route path="/"             element={<Dashboard />}    />
+          <Route path="/history"      element={<History />}      />
+          <Route path="/settings"     element={<Settings />}     />
+          <Route path="/maintenance"  element={<Maintenance />}  />
         </Routes>
       </AppShell>
     </HashRouter>

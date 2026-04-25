@@ -1,6 +1,6 @@
 {
   "name": "pesadeproductos",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Sistema de pesaje de productos para camiones de carga",
   "main": "dist-electron/main.js",
   "scripts": {

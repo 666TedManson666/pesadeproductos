@@ -13,7 +13,7 @@ const columns = [
   )},
   { key: 'weightKg', header: 'Peso (kg)', align: 'right' as const,
     render: (r: Weighing) => (
-      <span className="font-mono font-semibold text-green-400">{Number(r.weightKg).toFixed(3)}</span>
+      <span className="font-mono font-semibold text-green-400">{Number(r.weightKg).toFixed(2)}</span>
     )},
 ]
 
@@ -50,7 +50,7 @@ export function RecentWeighings() {
                   Total sesión
                 </td>
                 <td className="px-3 py-2 text-right font-mono font-bold text-white">
-                  {totalKg.toFixed(3)} kg
+                  {totalKg.toFixed(2)} kg
                 </td>
               </>
             ) : undefined

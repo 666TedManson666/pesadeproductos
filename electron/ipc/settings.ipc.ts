@@ -81,6 +81,11 @@ export function registerSettingsHandlers(): void {
       return { success: false, error: (err as Error).message }
     }
   })
+
+  ipcMain.handle('serial:readNow', (): IpcResponse<{ sent: boolean }> => {
+    const sent = serialManager.readNow()
+    return { success: true, data: { sent } }
+  })
 }
 
 export { settingsToConfig }

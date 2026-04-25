@@ -7,6 +7,7 @@ import type {
   IpcResponse,
   ParsedWeight,
   SerialStatus,
+  MaintenanceEvent,
 } from '../src/types'
 import type { SerialConfig, AvailablePort } from './serial/serial.types'
 
@@ -45,6 +46,7 @@ const api = {
     connect:        (p: SerialConfig): Promise<IpcResponse<unknown>>         => ipcRenderer.invoke('serial:connect', p),
     disconnect:     ():                Promise<IpcResponse<unknown>>         => ipcRenderer.invoke('serial:disconnect'),
     testConnection: (p: SerialConfig): Promise<IpcResponse<unknown>>         => ipcRenderer.invoke('serial:testConnection', p),
+    readNow:        ():                Promise<IpcResponse<unknown>>         => ipcRenderer.invoke('serial:readNow'),
   },
   app: {
     /** Pull-based: renderer calls this on mount to know if DB is ready */
@@ -58,9 +60,27 @@ const api = {
   },
 
   // Push events from main → renderer
-  onWeightUpdate: (cb: (w: ParsedWeight) => void): void => { ipcRenderer.on('serial:weightUpdate', (_e, data) => cb(data)) },
-  onStatusChange: (cb: (s: SerialStatus) => void): void => { ipcRenderer.on('serial:statusChange', (_e, data) => cb(data)) },
-  removeListener: (channel: string):               void => { ipcRenderer.removeAllListeners(channel) },
+  onWeightUpdate: (cb: (w: ParsedWeight) => void): void => {
+    console.log('[PRELOAD-DEBUG] Registrando listener para serial:weightUpdate')
+    ipcRenderer.on('serial:weightUpdate', (_e, data) => {
+      console.log('[PRELOAD-DEBUG] ← serial:weightUpdate recibido:', JSON.stringify(data))
+      cb(data)
+    })
+  },
+  onStatusChange: (cb: (s: SerialStatus) => void): void => {
+    console.log('[PRELOAD-DEBUG] Registrando listener para serial:statusChange')
+    ipcRenderer.on('serial:statusChange', (_e, data) => {
+      console.log('[PRELOAD-DEBUG] ← serial:statusChange recibido:', JSON.stringify(data))
+      cb(data)
+    })
+  },
+  onMaintenanceEvent: (cb: (e: MaintenanceEvent) => void): void => {
+    ipcRenderer.on('maintenance:event', (_e, data) => cb(data))
+  },
+  removeListener: (channel: string): void => {
+    console.log('[PRELOAD-DEBUG] removeAllListeners para canal:', channel)
+    ipcRenderer.removeAllListeners(channel)
+  },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

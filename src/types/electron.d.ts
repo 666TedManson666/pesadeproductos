@@ -8,6 +8,7 @@ import type {
   SerialStatus,
   AvailablePort,
   SerialConfig,
+  MaintenanceEvent,
 } from './index'
 
 export interface DbConfigPayload {
@@ -43,6 +44,7 @@ declare global {
         connect:        (p: SerialConfig)   => Promise<IpcResponse>
         disconnect:     ()                  => Promise<IpcResponse>
         testConnection: (p: SerialConfig)   => Promise<IpcResponse>
+        readNow:        ()                  => Promise<IpcResponse>
       }
       app: {
         getStatus: () => Promise<{ dbReady: boolean }>
@@ -53,9 +55,10 @@ declare global {
         getDb:      ()                   => Promise<IpcResponse>
         notifyDone: ()                   => void
       }
-      onWeightUpdate: (cb: (w: ParsedWeight) => void) => void
-      onStatusChange: (cb: (s: SerialStatus) => void) => void
-      removeListener: (channel: string)               => void
+      onWeightUpdate:      (cb: (w: ParsedWeight)      => void) => void
+      onStatusChange:      (cb: (s: SerialStatus)      => void) => void
+      onMaintenanceEvent:  (cb: (e: MaintenanceEvent)  => void) => void
+      removeListener:      (channel: string)                    => void
     }
   }
 }

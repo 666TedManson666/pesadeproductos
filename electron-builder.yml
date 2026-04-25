@@ -26,10 +26,18 @@ npmRebuild: true
 
 win:
   target:
-    - nsis
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
   icon: build/icon.ico
+  requestedExecutionLevel: asInvoker
 
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+  allowElevation: true
   language: 3082
+
+portable:
+  artifactName: PesaDeProductos-portable.exe
