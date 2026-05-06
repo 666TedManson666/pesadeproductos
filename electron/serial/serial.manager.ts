@@ -2,6 +2,7 @@ import { SerialPort } from 'serialport'
 import { ReadlineParser } from '@serialport/parser-readline'
 import type { BrowserWindow } from 'electron'
 import type { SerialConfig, SerialStatus, AvailablePort } from './serial.types'
+import { DELIMITER_BYTES } from './serial.types'
 import type { MaintenanceEvent, MaintenancePhase, MaintenanceStatus } from '../../src/types'
 import { parseWeight } from './serial.parser'
 
@@ -55,7 +56,8 @@ export class SerialManager {
         autoOpen: false,
       })
 
-      const parser = sp.pipe(new ReadlineParser({ delimiter: '\n' }))
+      const delimChar = DELIMITER_BYTES[config.delimiter] ?? '\r'
+      const parser = sp.pipe(new ReadlineParser({ delimiter: delimChar }))
 
       sp.open((err) => {
         if (err) {
@@ -207,7 +209,8 @@ export class SerialManager {
   async testConnection(config: SerialConfig): Promise<string | null> {
     return new Promise((resolve) => {
       const sp = new SerialPort({ path: config.port, baudRate: config.baudRate, autoOpen: false })
-      const parser = sp.pipe(new ReadlineParser({ delimiter: '\n' }))
+      const delimChar = DELIMITER_BYTES[config.delimiter] ?? '\r'
+      const parser = sp.pipe(new ReadlineParser({ delimiter: delimChar }))
       const timeout = setTimeout(() => { sp.close(); resolve(null) }, 3000)
 
       parser.once('data', (line: string) => {

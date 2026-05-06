@@ -11,6 +11,7 @@ function settingsToConfig(s: SettingsMap): SerialConfig {
     dataBits:    Number(s['serial.dataBits'] ?? 8)    as 5 | 6 | 7 | 8,
     stopBits:    Number(s['serial.stopBits'] ?? 1)    as 1 | 1.5 | 2,
     parity:      (s['serial.parity']     ?? 'none')   as SerialConfig['parity'],
+    delimiter:   (s['serial.delimiter']  ?? 'CR')     as SerialConfig['delimiter'],
     weightRegex: s['serial.weightRegex'] ?? '([0-9]+\\.?[0-9]*)',
     unit:        (s['serial.unit']       ?? 'kg')     as 'kg' | 'lb',
   }

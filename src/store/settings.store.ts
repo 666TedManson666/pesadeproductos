@@ -8,6 +8,7 @@ const DEFAULT_CONFIG: SerialConfig = {
   dataBits:    8,
   stopBits:    1,
   parity:      'none',
+  delimiter:   'CR',
   weightRegex: '([0-9]+\\.?[0-9]*)',
   unit:        'kg',
 }
@@ -19,6 +20,7 @@ function mapToConfig(s: SettingsMap): SerialConfig {
     dataBits:    Number(s['serial.dataBits'] ?? DEFAULT_CONFIG.dataBits) as 5 | 6 | 7 | 8,
     stopBits:    Number(s['serial.stopBits'] ?? DEFAULT_CONFIG.stopBits) as 1 | 1.5 | 2,
     parity:      (s['serial.parity']     ?? DEFAULT_CONFIG.parity)      as SerialConfig['parity'],
+    delimiter:   (s['serial.delimiter']  ?? DEFAULT_CONFIG.delimiter)   as SerialConfig['delimiter'],
     weightRegex: s['serial.weightRegex'] ?? DEFAULT_CONFIG.weightRegex,
     unit:        (s['serial.unit']       ?? DEFAULT_CONFIG.unit)        as 'kg' | 'lb',
   }
@@ -49,6 +51,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
       'serial.dataBits':    String(config.dataBits),
       'serial.stopBits':    String(config.stopBits),
       'serial.parity':      config.parity,
+      'serial.delimiter':   config.delimiter,
       'serial.weightRegex': config.weightRegex,
       'serial.unit':        config.unit,
     }

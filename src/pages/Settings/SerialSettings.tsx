@@ -97,6 +97,16 @@ export function SerialSettings() {
             ))}
           </Select>
         </div>
+
+        <Select
+          label="Fin de línea (delimiter)"
+          value={form.delimiter}
+          onChange={(e) => set('delimiter', e.target.value as SerialConfig['delimiter'])}
+        >
+          <option value="CR">CR — \r (más común en básculas industriales)</option>
+          <option value="LF">LF — \n</option>
+          <option value="CRLF">CR+LF — \r\n</option>
+        </Select>
       </div>
 
       {/* Weight parsing */}

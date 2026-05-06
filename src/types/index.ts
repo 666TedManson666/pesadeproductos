@@ -108,12 +108,15 @@ export interface AvailablePort {
   serialNumber: string | undefined
 }
 
+export type SerialDelimiter = 'CR' | 'LF' | 'CRLF'
+
 export interface SerialConfig {
   port:        string
   baudRate:    number
   dataBits:    5 | 6 | 7 | 8
   stopBits:    1 | 1.5 | 2
   parity:      'none' | 'even' | 'odd' | 'mark' | 'space'
+  delimiter:   SerialDelimiter
   weightRegex: string
   unit:        'kg' | 'lb'
 }
