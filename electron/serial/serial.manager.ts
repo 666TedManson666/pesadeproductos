@@ -6,8 +6,8 @@ import { DELIMITER_BYTES } from './serial.types'
 import type { MaintenanceEvent, MaintenancePhase, MaintenanceStatus } from '../../src/types'
 import { parseWeight } from './serial.parser'
 
-const THROTTLE_MS    = 100
-const RECONNECT_MS   = 5000
+const THROTTLE_MS = 100
+const RECONNECT_MS = 5000
 const STABLE_HOLD_MS = 1000
 const STABLE_EPSILON = 0.001
 
@@ -15,16 +15,16 @@ const SERIAL_DEBUG = true
 function dbg(...args: unknown[]) { if (SERIAL_DEBUG) console.log('[SERIAL-DEBUG]', ...args) }
 
 export class SerialManager {
-  private scaleId:       1 | 2
-  private port:          SerialPort | null = null
-  private config:        SerialConfig | null = null
-  private win:           BrowserWindow | null = null
+  private scaleId: 1 | 2
+  private port: SerialPort | null = null
+  private config: SerialConfig | null = null
+  private win: BrowserWindow | null = null
   private reconnectTimer: NodeJS.Timeout | null = null
-  private lastSentAt:    number = 0
-  private lastReadAt:    string | null = null
+  private lastSentAt: number = 0
+  private lastReadAt: string | null = null
 
-  private stableValue:  number | null = null
-  private stableSince:  number = 0
+  private stableValue: number | null = null
+  private stableSince: number = 0
 
   private lastParsed: { raw: string; value: number | null; stable: boolean } | null = null
 
@@ -48,16 +48,16 @@ export class SerialManager {
 
     return new Promise((resolve, reject) => {
       const sp = new SerialPort({
-        path:     config.port,
+        path: config.port,
         baudRate: config.baudRate,
         dataBits: config.dataBits,
         stopBits: config.stopBits as 1 | 1.5 | 2,
-        parity:   config.parity,
+        parity: config.parity,
         autoOpen: false,
       })
 
       const delimChar = DELIMITER_BYTES[config.delimiter] ?? '\r'
-      const parser    = sp.pipe(new ReadlineParser({ delimiter: delimChar }))
+      const parser = sp.pipe(new ReadlineParser({ delimiter: delimChar }))
 
       sp.open((err) => {
         if (err) {
@@ -154,7 +154,7 @@ export class SerialManager {
 
   readNow(): boolean {
     if (!this.port?.isOpen) {
-      if (this.config) this.connect(this.config).catch(() => {})
+      if (this.config) this.connect(this.config).catch(() => { })
       return false
     }
     if (this.lastParsed && this.win && !this.win.isDestroyed()) {
@@ -177,7 +177,7 @@ export class SerialManager {
   async listPorts(): Promise<AvailablePort[]> {
     const ports = await SerialPort.list()
     return ports.map((p) => ({
-      path:         p.path,
+      path: p.path,
       manufacturer: p.manufacturer,
       serialNumber: p.serialNumber,
     }))
@@ -188,16 +188,34 @@ export class SerialManager {
       const sp = new SerialPort({ path: config.port, baudRate: config.baudRate, autoOpen: false })
       const delimChar = DELIMITER_BYTES[config.delimiter] ?? '\r'
       const parser = sp.pipe(new ReadlineParser({ delimiter: delimChar }))
-      const timeout = setTimeout(() => { sp.close(); resolve(null) }, 3000)
+
+      // Avoid uncaught 'error' events if the port encounters an error during testing
+      sp.on('error', () => {
+        // Safe to ignore as we will handle closing and resolving below
+      })
+
+      const timeout = setTimeout(() => {
+        if (sp.isOpen) {
+          sp.close(() => resolve(null))
+        } else {
+          resolve(null)
+        }
+      }, 3000)
 
       parser.once('data', (line: string) => {
         clearTimeout(timeout)
-        sp.close()
-        resolve(line.trim())
+        if (sp.isOpen) {
+          sp.close(() => resolve(line.trim()))
+        } else {
+          resolve(line.trim())
+        }
       })
 
       sp.open((err) => {
-        if (err) { clearTimeout(timeout); resolve(null) }
+        if (err) {
+          clearTimeout(timeout)
+          resolve(null)
+        }
       })
     })
   }
@@ -207,7 +225,7 @@ export class SerialManager {
     this.clearReconnect()
     console.log(`[Serial][PESA${this.scaleId}] Reconnecting in ${RECONNECT_MS}ms...`)
     this.reconnectTimer = setTimeout(() => {
-      if (this.config) this.connect(this.config).catch(() => {})
+      if (this.config) this.connect(this.config).catch(() => { })
     }, RECONNECT_MS)
   }
 
