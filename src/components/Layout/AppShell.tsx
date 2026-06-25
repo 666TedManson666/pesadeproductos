@@ -5,6 +5,7 @@ import { useScaleWeight }  from '../../hooks/useScaleWeight'
 import { useSerialStatus } from '../../hooks/useSerialStatus'
 import { useSettingsStore } from '../../store/settings.store'
 import { useSessionStore }  from '../../store/session.store'
+import { useTareStore }     from '../../store/tare.store'
 import { sessionsApi, settingsApi } from '../../api/electron.api'
 import type { Session } from '../../types'
 
@@ -17,19 +18,21 @@ export function AppShell({ children }: AppShellProps) {
   useSerialStatus()
 
   const loadSettings = useSettingsStore((s) => s.loadSettings)
+  const loadTareItems = useTareStore((s) => s.loadItems)
   const setSession   = useSessionStore((s) => s.setSession)
   const location     = useLocation()
   const isKiosk      = location.pathname === '/'
 
   useEffect(() => {
     loadSettings()
+    loadTareItems()
     sessionsApi.getActive().then((res) => {
       if (res.success && res.data) setSession(res.data as Session)
     })
     // Connect both scales from saved settings
     settingsApi.connectFromSaved()
     settingsApi.connectFromSaved2()
-  }, [loadSettings, setSession])
+  }, [loadSettings, loadTareItems, setSession])
 
   if (isKiosk) {
     return (

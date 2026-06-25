@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react'
 import { WeightDisplay }         from '../../components/Scale/WeightDisplay'
+import { TareSelector }          from '../../components/Scale/TareSelector'
 import { useScaleStore }         from '../../store/scale.store'
 import { useScaleSelectorStore } from '../../store/scaleSelector.store'
 import { useSessionStore }       from '../../store/session.store'
 import { useSettingsStore }      from '../../store/settings.store'
+import { useTareStore, totalTareKg } from '../../store/tare.store'
 import { useKeyboardShortcut }   from '../../hooks/useKeyboardShortcut'
 import { weighingsApi, sessionsApi, productsApi, warehousesApi } from '../../api/electron.api'
 import type { Product, Warehouse, Session, Weighing } from '../../types'
+
+const KG_TO_LB = 2.20462
+const LB_TO_KG = 0.453592
 
 // ─── Style + icon helpers ──────────────────────────────────────────────────────
 
@@ -75,6 +80,16 @@ export function WeighingPanel() {
   const { weight, stable, rawData, status } = scaleData
   const { unit } = useSettingsStore((s) => activeScale === 1 ? s.serialConfig : s.serialConfig2)
 
+  // ── Tara (envases) ───────────────────────────────────────────────────────────
+  const tareItems  = useTareStore((s) => s.items)
+  const tareCounts = useTareStore((s) => s.counts)
+  const tareKg     = totalTareKg(tareItems, tareCounts)
+
+  // Peso bruto (lo que marca la pesa) normalizado a kg, y peso neto = bruto − tara
+  const grossKg = weight !== null ? (unit === 'lb' ? weight * LB_TO_KG : weight) : null
+  const netKg   = grossKg !== null ? grossKg - tareKg : null
+  const netUnit = netKg !== null ? (unit === 'lb' ? netKg * KG_TO_LB : netKg) : null
+
   const {
     mode, setMode,
     activeSession, setSession,
@@ -90,6 +105,8 @@ export function WeighingPanel() {
 
   const canCapture = weight !== null
     && weight > 0
+    && netKg !== null
+    && netKg > 0
     && stable
     && selectedWarehouseId !== null
     && selectedProductId   !== null
@@ -101,14 +118,19 @@ export function WeighingPanel() {
     if (!canCapture) return
     setCapturing(true)
     setError(null)
-    const weightKg = unit === 'lb' ? weight! * 0.453592 : weight!
+    // Guardamos el peso NETO (bruto − tara de envases)
+    const weightKg = netKg!
+    // Anotamos la tara en rawData para trazabilidad, sin romper el dato crudo original
+    const rawWithTare = tareKg > 0
+      ? `${rawData ?? ''} | bruto:${grossKg!.toFixed(3)}kg tara:${tareKg.toFixed(3)}kg`
+      : rawData ?? undefined
     const res = await weighingsApi.capture({
       warehouseId: selectedWarehouseId!,
       productId:   selectedProductId!,
       weightKg,
       sessionId:   activeSession?.id,
       mode,
-      rawData:     rawData ?? undefined,
+      rawData:     rawWithTare,
     })
     if (res.success && res.data) {
       addWeighing(res.data as Weighing)
@@ -159,6 +181,32 @@ export function WeighingPanel() {
     <div className="flex flex-col h-full">
       {/* Dual weight display */}
       <WeightDisplay weight={weight} stable={stable} unit={unit} />
+
+      {/* Banner de peso NETO — solo si hay tara aplicada */}
+      {tareKg > 0 && weight !== null && weight > 0 && (
+        <div className="mx-4 mt-1 flex items-stretch rounded-xl overflow-hidden border-2 border-green-700/50 shadow-lg shadow-green-950/40">
+          <div className="flex-1 flex flex-col items-center justify-center py-1.5 bg-gray-900/60">
+            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Bruto</span>
+            <span className="text-sm font-mono font-black text-gray-400 tabular-nums">
+              {Number(weight).toFixed(unit === 'lb' ? 1 : 2)} {unit}
+            </span>
+          </div>
+          <div className="flex items-center justify-center px-1 bg-gray-900/60 text-gray-600 font-black">−</div>
+          <div className="flex-1 flex flex-col items-center justify-center py-1.5 bg-amber-950/40">
+            <span className="text-[9px] font-bold text-amber-500/80 uppercase tracking-wider">Tara</span>
+            <span className="text-sm font-mono font-black text-amber-300 tabular-nums">
+              {(unit === 'lb' ? tareKg * KG_TO_LB : tareKg).toFixed(unit === 'lb' ? 1 : 2)} {unit}
+            </span>
+          </div>
+          <div className="flex items-center justify-center px-1 bg-gray-900/60 text-gray-600 font-black">=</div>
+          <div className={`flex-[1.3] flex flex-col items-center justify-center py-1.5 ${netUnit !== null && netUnit > 0 ? 'bg-green-700/90' : 'bg-red-800/70'}`}>
+            <span className="text-[9px] font-bold text-white/70 uppercase tracking-wider">Neto</span>
+            <span className="text-lg font-mono font-black text-white tabular-nums leading-none">
+              {netUnit !== null ? netUnit.toFixed(unit === 'lb' ? 1 : 2) : '--'} {unit}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 px-4 pb-4 pt-2">
 
@@ -254,6 +302,9 @@ export function WeighingPanel() {
             )}
           </div>
         )}
+
+        {/* ─── Tara / Envases ───────────────────────────────────────────────────── */}
+        <TareSelector unit={unit} />
 
         {/* ─── Step 1: Product ─────────────────────────────────────────────────── */}
         <div>
@@ -395,10 +446,10 @@ export function WeighingPanel() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
                   d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
               </svg>
-              Capturar Peso
-              {canCapture && (
+              {tareKg > 0 ? 'Capturar Neto' : 'Capturar Peso'}
+              {canCapture && netUnit !== null && (
                 <span className="text-sm font-normal text-green-300/70">
-                  — {Number(weight).toFixed(unit === 'lb' ? 1 : 3)} {unit}
+                  — {netUnit.toFixed(unit === 'lb' ? 1 : 3)} {unit}
                 </span>
               )}
             </>
