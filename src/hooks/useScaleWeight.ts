@@ -3,23 +3,21 @@ import { useScaleStore } from '../store/scale.store'
 import type { ParsedWeight } from '../types'
 
 /**
- * Subscribes to the serial:weightUpdate push event from the main process
- * and writes updates into the scale store.
+ * Subscribes to serial:weightUpdate:1 and serial:weightUpdate:2 push events
+ * and writes updates into the per-scale store.
  * Call this hook once at the app shell level.
  */
 export function useScaleWeight(): void {
   const setWeight = useScaleStore((s) => s.setWeight)
 
   useEffect(() => {
-    console.log('[HOOK-DEBUG] useScaleWeight: montando, registrando onWeightUpdate')
-    const handler = (w: ParsedWeight) => {
-      console.log('[HOOK-DEBUG] Peso recibido en hook:', JSON.stringify(w))
-      setWeight(w)
-    }
-    window.electronAPI.onWeightUpdate(handler)
+    const h1 = (w: ParsedWeight) => setWeight(1, w)
+    const h2 = (w: ParsedWeight) => setWeight(2, w)
+    window.electronAPI.onWeightUpdate(1, h1)
+    window.electronAPI.onWeightUpdate(2, h2)
     return () => {
-      console.log('[HOOK-DEBUG] useScaleWeight: desmontando, removiendo listeners')
-      window.electronAPI.removeListener('serial:weightUpdate')
+      window.electronAPI.removeListener('serial:weightUpdate:1')
+      window.electronAPI.removeListener('serial:weightUpdate:2')
     }
   }, [setWeight])
 }

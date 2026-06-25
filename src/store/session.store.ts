@@ -15,6 +15,7 @@ interface SessionStore {
   setWarehouse:   (id: number | null)  => void
   setProduct:     (id: number | null)  => void
   addWeighing:    (w: Weighing)        => void
+  removeWeighing: (id: number)         => void
   clearRecent:    ()                   => void
 }
 
@@ -33,6 +34,11 @@ export const useSessionStore = create<SessionStore>((set) => ({
   addWeighing: (w) =>
     set((state) => ({
       recentWeighings: [w, ...state.recentWeighings].slice(0, 50),
+    })),
+
+  removeWeighing: (id) =>
+    set((state) => ({
+      recentWeighings: state.recentWeighings.filter((w) => w.id !== id),
     })),
 
   clearRecent: () => set({ recentWeighings: [] }),

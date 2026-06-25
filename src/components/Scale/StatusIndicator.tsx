@@ -1,7 +1,9 @@
-import { useScaleStore } from '../../store/scale.store'
+import { useScaleStore }         from '../../store/scale.store'
+import { useScaleSelectorStore } from '../../store/scaleSelector.store'
 
 export function StatusIndicator() {
-  const { connected, portName, error } = useScaleStore((s) => s.status)
+  const activeScale               = useScaleSelectorStore((s) => s.activeScale)
+  const { connected, portName, error } = useScaleStore((s) => s.scales[activeScale].status)
 
   if (connected) {
     return (

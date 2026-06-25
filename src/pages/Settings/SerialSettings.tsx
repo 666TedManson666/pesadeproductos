@@ -7,18 +7,22 @@ import { serialApi }        from '../../api/electron.api'
 import { ConnectionTester } from './ConnectionTester'
 import type { SerialConfig, AvailablePort } from '../../types'
 
-export function SerialSettings() {
-  const { serialConfig, saveSerialConfig } = useSettingsStore()
-  const [form,    setForm]    = useState<SerialConfig>(serialConfig)
-  const [ports,   setPorts]   = useState<AvailablePort[]>([])
-  const [saving,  setSaving]  = useState(false)
-  const [saved,   setSaved]   = useState(false)
+function ScaleForm({
+  config,
+  onSave,
+  ports,
+  onRefreshPorts,
+}: {
+  config:          SerialConfig
+  onSave:          (c: SerialConfig) => Promise<void>
+  ports:           AvailablePort[]
+  onRefreshPorts:  () => void
+}) {
+  const [form,   setForm]   = useState<SerialConfig>(config)
+  const [saving, setSaving] = useState(false)
+  const [saved,  setSaved]  = useState(false)
 
-  useEffect(() => { setForm(serialConfig) }, [serialConfig])
-
-  useEffect(() => {
-    serialApi.listPorts().then((r) => { if (r.success) setPorts(r.data ?? []) })
-  }, [])
+  useEffect(() => { setForm(config) }, [config])
 
   function set<K extends keyof SerialConfig>(key: K, value: SerialConfig[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -26,7 +30,7 @@ export function SerialSettings() {
 
   async function handleSave() {
     setSaving(true)
-    await saveSerialConfig(form)
+    await onSave(form)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -34,11 +38,8 @@ export function SerialSettings() {
 
   return (
     <div className="space-y-6 max-w-xl">
-      {/* Port selection */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
-          Puerto Serial
-        </h3>
+        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Puerto Serial</h3>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">
@@ -57,22 +58,14 @@ export function SerialSettings() {
                   </option>
                 ))}
               </select>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => serialApi.listPorts().then((r) => { if (r.success) setPorts(r.data ?? []) })}
-                title="Actualizar lista de puertos"
-              >
+              <Button variant="ghost" size="sm" onClick={onRefreshPorts} title="Actualizar lista de puertos">
                 ↻
               </Button>
             </div>
           </div>
 
-          <Select
-            label="Baud Rate"
-            value={String(form.baudRate)}
-            onChange={(e) => set('baudRate', Number(e.target.value))}
-          >
+          <Select label="Baud Rate" value={String(form.baudRate)}
+            onChange={(e) => set('baudRate', Number(e.target.value))}>
             {[1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200].map((b) => (
               <option key={b} value={b}>{b}</option>
             ))}
@@ -98,22 +91,16 @@ export function SerialSettings() {
           </Select>
         </div>
 
-        <Select
-          label="Fin de línea (delimiter)"
-          value={form.delimiter}
-          onChange={(e) => set('delimiter', e.target.value as SerialConfig['delimiter'])}
-        >
+        <Select label="Fin de línea (delimiter)" value={form.delimiter}
+          onChange={(e) => set('delimiter', e.target.value as SerialConfig['delimiter'])}>
           <option value="CR">CR — \r (más común en básculas industriales)</option>
           <option value="LF">LF — \n</option>
           <option value="CRLF">CR+LF — \r\n</option>
         </Select>
       </div>
 
-      {/* Weight parsing */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
-          Formato de Peso
-        </h3>
+        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Formato de Peso</h3>
         <p className="text-xs text-gray-500">
           Expresión regular para extraer el valor numérico del dato crudo de la pesa.
           El primer grupo de captura <code className="text-gray-300">( )</code> debe contener el número.
@@ -134,20 +121,82 @@ export function SerialSettings() {
         </Select>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-4">
         <Button variant="primary" size="md" loading={saving} onClick={handleSave}>
           {saved ? '✓ Guardado' : 'Guardar configuración'}
         </Button>
       </div>
 
-      {/* Connection test */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
-          Prueba de Conexión
-        </h3>
+        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Prueba de Conexión</h3>
         <ConnectionTester config={form} />
       </div>
+    </div>
+  )
+}
+
+export function SerialSettings() {
+  const { serialConfig, serialConfig2, saveSerialConfig, saveSerialConfig2 } = useSettingsStore()
+  const [activeTab, setActiveTab] = useState<1 | 2>(1)
+  const [ports, setPorts] = useState<AvailablePort[]>([])
+
+  function refreshPorts() {
+    serialApi.listPorts().then((r) => { if (r.success) setPorts(r.data ?? []) })
+  }
+
+  useEffect(() => { refreshPorts() }, [])
+
+  return (
+    <div className="space-y-5">
+      {/* Tab switcher */}
+      <div className="flex gap-1 p-1 bg-gray-900/80 rounded-xl border border-gray-800 w-fit">
+        <button
+          onClick={() => setActiveTab(1)}
+          className={[
+            'flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-black tracking-wide transition-all',
+            activeTab === 1
+              ? 'bg-teal-600 text-white shadow-md'
+              : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50',
+          ].join(' ')}
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+              d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+          </svg>
+          PESA 1
+        </button>
+        <button
+          onClick={() => setActiveTab(2)}
+          className={[
+            'flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-black tracking-wide transition-all',
+            activeTab === 2
+              ? 'bg-amber-500 text-white shadow-md'
+              : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50',
+          ].join(' ')}
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+              d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+          </svg>
+          PESA 2
+        </button>
+      </div>
+
+      {activeTab === 1 ? (
+        <ScaleForm
+          config={serialConfig}
+          onSave={saveSerialConfig}
+          ports={ports}
+          onRefreshPorts={refreshPorts}
+        />
+      ) : (
+        <ScaleForm
+          config={serialConfig2}
+          onSave={saveSerialConfig2}
+          ports={ports}
+          onRefreshPorts={refreshPorts}
+        />
+      )}
     </div>
   )
 }

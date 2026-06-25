@@ -4,14 +4,14 @@ import path from 'path'
 import { runMigrations } from './database/migrations'
 import { closePool } from './database/connection'
 import { getAllSettings } from './repositories/settings.repository'
-import { settingsToConfig } from './ipc/settings.ipc'
-import { serialManager } from './serial/serial.manager'
+import { settingsToConfig, settingsToConfig2 } from './ipc/settings.ipc'
+import { serialManager1, serialManager2 } from './serial/serial.manager'
 import { registerAllHandlers } from './ipc/index'
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
 let mainWindow: BrowserWindow | null = null
-let dbReady = false   // renderer pulls this via IPC on mount
+let dbReady = false
 
 async function createWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
@@ -43,7 +43,8 @@ async function createWindow(): Promise<void> {
     return { action: 'deny' }
   })
 
-  serialManager.setWindow(mainWindow)
+  serialManager1.setWindow(mainWindow)
+  serialManager2.setWindow(mainWindow)
 }
 
 async function tryRunMigrations(): Promise<boolean> {
@@ -57,45 +58,49 @@ async function tryRunMigrations(): Promise<boolean> {
 }
 
 async function connectSerial(): Promise<void> {
+  const settings = await getAllSettings()
+
+  // Connect scale 1
   try {
-    const settings = await getAllSettings()
-    const config   = settingsToConfig(settings)
-    console.log('[MAIN-DEBUG] Conectando serial con config:', JSON.stringify(config))
-    await serialManager.connect(config)
-    console.log('[MAIN-DEBUG] Serial conectado exitosamente')
+    const config1 = settingsToConfig(settings)
+    console.log('[MAIN-DEBUG] Conectando PESA 1:', config1.port)
+    await serialManager1.connect(config1)
+    console.log('[MAIN-DEBUG] PESA 1 conectada')
   } catch (err) {
-    console.error('[MAIN-DEBUG] ⚠️ FALLÓ conexión serial:', (err as Error).message)
-    console.log('[Main] No serial port auto-connected (will retry when settings are saved)')
+    console.error('[MAIN-DEBUG] ⚠️ PESA 1 falló:', (err as Error).message)
+  }
+
+  // Connect scale 2
+  try {
+    const config2 = settingsToConfig2(settings)
+    console.log('[MAIN-DEBUG] Conectando PESA 2:', config2.port)
+    await serialManager2.connect(config2)
+    console.log('[MAIN-DEBUG] PESA 2 conectada')
+  } catch (err) {
+    console.error('[MAIN-DEBUG] ⚠️ PESA 2 falló:', (err as Error).message)
   }
 }
 
 async function init(): Promise<void> {
   console.log('[MAIN-DEBUG] ========== INICIANDO APP ==========')
 
-  // 1. Register all IPC handlers (must be before any IPC calls)
   registerAllHandlers()
 
-  // 2. Register the status handler so renderer can pull on mount
   ipcMain.handle('app:getStatus', () => {
-    console.log('[MAIN-DEBUG] Renderer llamó app:getStatus → dbReady=' + dbReady)
+    console.log('[MAIN-DEBUG] app:getStatus → dbReady=' + dbReady)
     return { dbReady }
   })
 
-  // 3. Try DB before creating window (avoids race condition with did-finish-load)
   dbReady = await tryRunMigrations()
   console.log('[MAIN-DEBUG] DB ready:', dbReady)
 
-  // 4. Create and show the window — renderer will call app:getStatus on mount
   await createWindow()
-  console.log('[MAIN-DEBUG] Ventana creada. serialManager.win set=', !!mainWindow)
 
-  // 5. If DB is ready, connect serial. Otherwise wait for renderer to finish setup.
   if (dbReady) {
     console.log('[MAIN-DEBUG] DB lista, conectando serial...')
     await connectSerial()
   } else {
-    console.warn('[MAIN-DEBUG] ⚠️ DB NO lista, esperando señal app:dbSetupDone del renderer...')
-    // Listen for setup completion signal from renderer
+    console.warn('[MAIN-DEBUG] ⚠️ DB NO lista, esperando app:dbSetupDone...')
     ipcMain.once('app:dbSetupDone', async () => {
       console.log('[MAIN-DEBUG] Recibido app:dbSetupDone, conectando serial...')
       dbReady = true
@@ -109,7 +114,8 @@ async function init(): Promise<void> {
 app.whenReady().then(init).catch(console.error)
 
 app.on('window-all-closed', async () => {
-  await serialManager.disconnect()
+  await serialManager1.disconnect()
+  await serialManager2.disconnect()
   await closePool()
   if (process.platform !== 'darwin') app.quit()
 })

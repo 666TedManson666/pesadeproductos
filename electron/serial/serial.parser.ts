@@ -4,12 +4,16 @@ import type { ParsedWeight } from './serial.types'
  * Parses a raw serial string from the scale.
  * The regex must contain a capture group for the numeric value.
  *
- * Designed for scales that send strings like: "15.5 KG G"
- * Recommended regex: ([0-9]+\.?[0-9]*)\s*KG\s*G
+ * Designed for scales that send strings like: "+0087.5 lb n", "+0079.0 kg g", "+0053.0m lb g"
+ * Recommended regex: ([0-9]+\.?[0-9]*)[a-zA-Z]?\s+(?:kg|lb|KG|LB)
+ *   - Captures the numeric value before the unit
+ *   - Handles optional motion flag (m) or net indicator after the number
+ *   - Supports both kg and lb units, upper or lowercase
+ *   - Does NOT require a trailing mode flag (g/G/n/N) — varies by scale model
  *
  * Also compatible with other formats:
  *   "ST,GS,+   5.230kg\r\n"   → Toledo/Mettler
- *   "  5.230\r\n"              → generic
+ *   "  5.230\r\n"              → generic (use simpler regex)
  *
  * NOTE: Stability (the `stable` flag) is determined by the SerialManager
  * via a time-based debounce, not by this parser.

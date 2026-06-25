@@ -26,6 +26,15 @@ export default {
           offline:  '#6b7280',
         },
       },
+      colors: {
+        kiosk: {
+          bg:      '#080c14',
+          surface: '#0f1623',
+          header:  '#0c1220',
+          border:  '#1a2540',
+          card:    '#111827',
+        },
+      },
       fontFamily: {
         mono: ['Consolas', 'Courier New', 'monospace'],
         display: ['Segoe UI', 'system-ui', 'sans-serif'],
@@ -33,6 +42,7 @@ export default {
       fontSize: {
         '7xl': ['4.5rem', { lineHeight: '1' }],
         '8xl': ['6rem',   { lineHeight: '1' }],
+        '9xl': ['8rem',   { lineHeight: '1' }],
       },
     },
   },

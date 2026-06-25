@@ -114,8 +114,12 @@ export default function MaintenancePage() {
   const [autoScroll, setAutoScroll] = useState(true)
   const [, forceRender]     = useState(0)
 
-  const { weight, stable, rawData, status: serialStatus } = useScaleStore()
-  const { serialConfig } = useSettingsStore()
+  const [activeMaintScale, setActiveMaintScale] = useState<1 | 2>(1)
+
+  const scaleData = useScaleStore((s) => s.scales[activeMaintScale])
+  const { weight, stable, rawData, status: serialStatus } = scaleData
+  const { serialConfig: cfg1, serialConfig2: cfg2 } = useSettingsStore()
+  const serialConfig = activeMaintScale === 1 ? cfg1 : cfg2
 
   // Re-render every second to refresh relative timestamps
   useEffect(() => {
@@ -123,9 +127,10 @@ export default function MaintenancePage() {
     return () => clearInterval(id)
   }, [])
 
-  // Subscribe to maintenance events from main process
+  // Subscribe to maintenance events — filter by active scale
   useEffect(() => {
     const handler = (e: MaintenanceEvent) => {
+      if (e.scaleId !== undefined && e.scaleId !== activeMaintScale) return
       setPhases((prev) => ({
         ...prev,
         [e.phase]: {
@@ -143,7 +148,7 @@ export default function MaintenancePage() {
     }
     window.electronAPI.onMaintenanceEvent(handler)
     return () => window.electronAPI.removeListener('maintenance:event')
-  }, [])
+  }, [activeMaintScale])
 
   // Track PANTALLA phase: every time a new weight arrives in the hook store it's proof
   // the renderer received the IPC event successfully.
@@ -193,20 +198,41 @@ export default function MaintenancePage() {
     <div className="flex flex-col gap-6 h-full">
 
       {/* ─── Header ────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-white">Mantenimiento</h1>
           <p className="text-xs text-gray-500 mt-0.5">
             Diagnóstico del pipeline de datos — de la pesa a la pantalla
           </p>
         </div>
-        <button
-          onClick={handleClear}
-          className="px-3 py-1.5 text-xs font-semibold text-gray-400 border border-gray-700
-                     rounded-lg hover:bg-gray-800 hover:text-white transition-colors"
-        >
-          Limpiar
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Scale selector */}
+          <div className="flex gap-1 p-1 bg-gray-900 rounded-xl border border-gray-800">
+            <button
+              onClick={() => { setActiveMaintScale(1); setPhases(makeIdleMap()); setLog([]) }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-black tracking-wide transition-all ${
+                activeMaintScale === 1 ? 'bg-teal-600 text-white' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              PESA 1
+            </button>
+            <button
+              onClick={() => { setActiveMaintScale(2); setPhases(makeIdleMap()); setLog([]) }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-black tracking-wide transition-all ${
+                activeMaintScale === 2 ? 'bg-amber-500 text-white' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              PESA 2
+            </button>
+          </div>
+          <button
+            onClick={handleClear}
+            className="px-3 py-1.5 text-xs font-semibold text-gray-400 border border-gray-700
+                       rounded-lg hover:bg-gray-800 hover:text-white transition-colors"
+          >
+            Limpiar
+          </button>
+        </div>
       </div>
 
       {/* ─── Config summary ────────────────────────────────────────── */}

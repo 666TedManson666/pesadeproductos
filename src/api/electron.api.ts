@@ -39,9 +39,10 @@ export const weighingsApi = {
 }
 
 export const settingsApi = {
-  getAll:           (): Promise<IpcResponse<SettingsMap>>   => api().settings.getAll()         as Promise<IpcResponse<SettingsMap>>,
-  save:             (p: SettingsMap): Promise<IpcResponse<void>> => api().settings.save(p)     as Promise<IpcResponse<void>>,
-  connectFromSaved: (): Promise<IpcResponse<void>>          => api().settings.connectFromSaved() as Promise<IpcResponse<void>>,
+  getAll:            (): Promise<IpcResponse<SettingsMap>>       => api().settings.getAll()          as Promise<IpcResponse<SettingsMap>>,
+  save:              (p: SettingsMap): Promise<IpcResponse<void>> => api().settings.save(p)          as Promise<IpcResponse<void>>,
+  connectFromSaved:  (): Promise<IpcResponse<void>>              => api().settings.connectFromSaved()  as Promise<IpcResponse<void>>,
+  connectFromSaved2: (): Promise<IpcResponse<void>>              => api().settings.connectFromSaved2() as Promise<IpcResponse<void>>,
 }
 
 export const serialApi = {

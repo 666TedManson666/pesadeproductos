@@ -1,6 +1,6 @@
 appId: com.pesadeproductos.app
 productName: PesaDeProductos
-copyright: Copyright © 2024
+copyright: Copyright © 2026
 
 directories:
   output: release
@@ -28,8 +28,6 @@ win:
   target:
     - target: nsis
       arch: [x64]
-    - target: portable
-      arch: [x64]
   icon: build/icon.ico
   requestedExecutionLevel: asInvoker
 
@@ -38,6 +36,3 @@ nsis:
   allowToChangeInstallationDirectory: true
   allowElevation: true
   language: 3082
-
-portable:
-  artifactName: PesaDeProductos-portable.exe

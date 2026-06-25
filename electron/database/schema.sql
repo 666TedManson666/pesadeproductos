@@ -90,6 +90,18 @@ CREATE INDEX IF NOT EXISTS idx_weighings_session_id   ON weighings(session_id);
 -- ============================================================
 -- DEFAULT SETTINGS
 -- ============================================================
+-- Scale 2 defaults (scale 1 uses the 'serial.*' keys below)
+INSERT INTO settings (key, value) VALUES
+    ('scale2.serial.port',        'COM4'),
+    ('scale2.serial.baudRate',    '9600'),
+    ('scale2.serial.dataBits',    '8'),
+    ('scale2.serial.stopBits',    '1'),
+    ('scale2.serial.parity',      'none'),
+    ('scale2.serial.delimiter',   'CR'),
+    ('scale2.serial.weightRegex', '([0-9]+\.?[0-9]*)[a-zA-Z]?\s+(?:kg|lb|KG|LB)'),
+    ('scale2.serial.unit',        'kg')
+ON CONFLICT (key) DO NOTHING;
+
 INSERT INTO settings (key, value) VALUES
     ('serial.port',        'COM3'),
     ('serial.baudRate',    '9600'),
@@ -99,11 +111,16 @@ INSERT INTO settings (key, value) VALUES
     ('serial.unit',        'kg')
 ON CONFLICT (key) DO NOTHING;
 
--- Always enforce the correct regex for this scale model
--- (safe to re-run: only overwrites if value is the old generic pattern)
+-- Default regex: matches numeric weight + optional motion/net flag, then unit (kg or lb).
+-- Examples matched: "+0087.5 lb n", "+0079.0 kg g", "+0053.0m lb g", "15.5 KG G"
+-- Safe to re-run: only overwrites known default/outdated patterns.
 INSERT INTO settings (key, value) VALUES
-    ('serial.weightRegex', '([0-9]+\.?[0-9]*)\s*KG\s*G')
+    ('serial.weightRegex', '([0-9]+\.?[0-9]*)[a-zA-Z]?\s+(?:kg|lb|KG|LB)')
 ON CONFLICT (key) DO UPDATE
     SET value = EXCLUDED.value,
         updated_at = NOW()
-    WHERE settings.value = '([0-9]+\.?[0-9]*)';
+    WHERE settings.value IN (
+        '([0-9]+\.?[0-9]*)',
+        '([0-9]+\.?[0-9]*)\s*KG\s*G',
+        '([0-9]+\.?[0-9]*)[a-zA-Z]?\s+(?:kg|lb|KG|LB)\s*[gG]'
+    );

@@ -135,9 +135,10 @@ export type MaintenancePhase =
 export type MaintenanceStatus = 'ok' | 'error' | 'warn' | 'idle'
 
 export interface MaintenanceEvent {
-  phase:   MaintenancePhase
-  status:  MaintenanceStatus
-  message: string
-  detail?: string
-  ts:      number
+  phase:    MaintenancePhase
+  status:   MaintenanceStatus
+  message:  string
+  detail?:  string
+  ts:       number
+  scaleId?: 1 | 2
 }
